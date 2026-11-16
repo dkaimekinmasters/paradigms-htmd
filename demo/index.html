@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>htmd playground</title>
+  <!-- An empty icon stops the browser requesting /favicon.ico. -->
+  <link rel="icon" href="data:,">
+  <link data-trunk rel="css" href="style.css">
+  <link data-trunk rel="rust" data-bin="htmd-playground" data-wasm-opt="z">
+  <script>
+    // Crash handling stays in plain JavaScript: after a panic or a trap, such
+    // as a stack overflow, the WebAssembly state cannot be trusted. Rust calls
+    // htmdShowCrash from its panic hook and for conversion errors, and reads
+    // htmdCrashed before converting.
+    (function () {
+      window.htmdCrashed = false;
+
+      function copyInput(note) {
+        var input = document.getElementById("input");
+        var text = input ? input.value : "";
+        function manual() {
+          if (input) { input.focus(); input.select(); }
+          note.textContent = "Copying is blocked; the input is selected, so press Ctrl+C (⌘C on a Mac).";
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            note.textContent = "Copied the input.";
+          }, manual);
+        } else {
+          manual();
+        }
+      }
+
+      window.htmdShowCrash = function (detail) {
+        if (window.htmdCrashed) return;
+        window.htmdCrashed = true;
+        var body = document.getElementById("output-body");
+        var box = document.getElementById("crash-message");
+        if (!box) {
+          box = document.createElement("div");
+          box.className = "crash";
+          box.setAttribute("role", "alert");
+          document.body.appendChild(box);
+        }
+        if (body) body.hidden = true;
+        document.querySelectorAll("[data-stale-disable]").forEach(function (control) {
+          control.disabled = true;
+        });
+        box.innerHTML =
+          "<h2>The converter crashed</h2>" +
+          "<p>Nothing will convert until the page is reloaded. Your input is still in the editor.</p>" +
+          "<pre class=\"crash-detail\"></pre>" +
+          "<p class=\"crash-actions\"><button type=\"button\">Copy input</button> " +
+          "<a href=\"\" data-action=\"reload\">Reload</a> " +
+          "<a href=\"\" data-action=\"start-over\">Start over</a></p>" +
+          "<p class=\"crash-note\" aria-live=\"polite\"></p>";
+        box.querySelector(".crash-detail").textContent = String(detail || "Unknown error");
+        var note = box.querySelector(".crash-note");
+        box.querySelector("button").addEventListener("click", function () { copyInput(note); });
+        var startOver = location.pathname + location.search;
+        box.querySelector("[data-action=start-over]").setAttribute("href", startOver);
+        box.querySelector("[data-action=reload]").addEventListener("click", function (event) {
+          event.preventDefault();
+          location.reload();
+        });
+        box.querySelector("[data-action=start-over]").addEventListener("click", function (event) {
+          event.preventDefault();
+          location.assign(startOver);
+        });
+        box.hidden = false;
+      };
+
+      window.addEventListener("error", function (event) {
+        window.htmdShowCrash(event.message || event.error);
+      });
+      window.addEventListener("unhandledrejection", function (event) {
+        window.htmdShowCrash(event.reason);
+      });
+    })();
+  </script>
+</head>
+<body></body>
+</html>

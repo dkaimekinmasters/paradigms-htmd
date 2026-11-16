@@ -1,0 +1,44 @@
+[package]
+name = "htmd-playground"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Browser playground for htmd and pulldown-cmark."
+license = "Apache-2.0"
+
+# An empty table keeps this crate out of any workspace above it, so the htmd
+# library's own build is unaffected.
+[workspace]
+
+[dependencies]
+htmd = { path = ".." }
+# The same versions htmd uses, so they are compiled once.
+html5ever = "0.39"
+markup5ever_rcdom = "0.39"
+pulldown-cmark = { version = "=0.13.4", default-features = false, features = ["html"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+leptos = { version = "0.8", features = ["csr"] }
+js-sys = "0.3"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "console",
+    "Document",
+    "Element",
+    "History",
+    "HtmlDetailsElement",
+    "HtmlInputElement",
+    "HtmlTextAreaElement",
+    "Location",
+    "MediaQueryList",
+    "Performance",
+    "Range",
+    "Selection",
+    "Window",
+] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
